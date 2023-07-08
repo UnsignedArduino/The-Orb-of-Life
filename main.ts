@@ -25,6 +25,15 @@ function jump_character () {
 }
 function load_map () {
     tiles.setCurrentTilemap(game_map[map_y][map_x])
+    if (tiles.getTilesByType(assets.tile`spawn_point`).length > 0) {
+        tiles.placeOnRandomTile(sprite_player, assets.tile`spawn_point`)
+        tileUtil.replaceAllTiles(assets.tile`spawn_point`, assets.tile`transparency8`)
+        sprite_player.y += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) / 2
+        sprite_player.vx = 1
+        timer.after(0, function () {
+            sprite_player.vx = 0
+        })
+    }
 }
 scene.onOverlapTile(SpriteKind.Player, assets.tile`to_right_map`, function (sprite, location) {
     timer.throttle("map_change", 100, function () {
@@ -41,18 +50,6 @@ function make_character () {
     enable_controls(true)
     characterAnimations.loopFrames(
     sprite_player,
-    assets.animation`player_walk_left`,
-    100,
-    characterAnimations.rule(Predicate.MovingLeft)
-    )
-    characterAnimations.loopFrames(
-    sprite_player,
-    [assets.animation`player_walk_left`[1]],
-    100,
-    characterAnimations.rule(Predicate.FacingLeft, Predicate.NotMoving)
-    )
-    characterAnimations.loopFrames(
-    sprite_player,
     assets.animation`player_walk_right`,
     100,
     characterAnimations.rule(Predicate.MovingRight)
@@ -62,6 +59,18 @@ function make_character () {
     [assets.animation`player_walk_right`[1]],
     100,
     characterAnimations.rule(Predicate.FacingRight, Predicate.NotMoving)
+    )
+    characterAnimations.loopFrames(
+    sprite_player,
+    assets.animation`player_walk_left`,
+    100,
+    characterAnimations.rule(Predicate.MovingLeft)
+    )
+    characterAnimations.loopFrames(
+    sprite_player,
+    [assets.animation`player_walk_left`[1]],
+    100,
+    characterAnimations.rule(Predicate.FacingLeft, Predicate.NotMoving)
     )
 }
 function enable_controls (en: boolean) {
