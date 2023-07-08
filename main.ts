@@ -39,6 +39,30 @@ scene.onOverlapTile(SpriteKind.Player, assets.tile`to_right_map`, function (spri
 function make_character () {
     sprite_player = sprites.create(assets.image`player_image`, SpriteKind.Player)
     enable_controls(true)
+    characterAnimations.loopFrames(
+    sprite_player,
+    assets.animation`player_walk_left`,
+    100,
+    characterAnimations.rule(Predicate.MovingLeft)
+    )
+    characterAnimations.loopFrames(
+    sprite_player,
+    [assets.animation`player_walk_left`[1]],
+    100,
+    characterAnimations.rule(Predicate.FacingLeft, Predicate.NotMoving)
+    )
+    characterAnimations.loopFrames(
+    sprite_player,
+    assets.animation`player_walk_right`,
+    100,
+    characterAnimations.rule(Predicate.MovingRight)
+    )
+    characterAnimations.loopFrames(
+    sprite_player,
+    [assets.animation`player_walk_right`[1]],
+    100,
+    characterAnimations.rule(Predicate.FacingRight, Predicate.NotMoving)
+    )
 }
 function enable_controls (en: boolean) {
     en_controls = en
