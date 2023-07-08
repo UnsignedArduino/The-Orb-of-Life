@@ -25,49 +25,62 @@ function jump_character () {
 }
 function load_map () {
     tiles.setCurrentTilemap(game_map[map_y][map_x])
-    tiles.placeOnRandomTile(sprite_player, assets.tile`spawn_in_tile`)
 }
 scene.onOverlapTile(SpriteKind.Player, assets.tile`to_right_map`, function (sprite, location) {
-    local_overlap_index = location_index([location], tiles.getTilesByType(assets.tile`to_right_map`))
-    map_x += 1
-    load_map()
-    tiles.placeOnTile(sprite, tiles.getTilesByType(assets.tile`to_left_map`)[local_overlap_index])
-    sprite.x += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth)
+    timer.throttle("map_change", 100, function () {
+        local_overlap_index = location_index([location], tiles.getTilesByType(assets.tile`to_right_map`))
+        map_x += 1
+        load_map()
+        tiles.placeOnTile(sprite, tiles.getTilesByType(assets.tile`to_left_map`)[local_overlap_index])
+        sprite.x += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth)
+        sprite.y += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) / 2
+    })
 })
 function make_character () {
     sprite_player = sprites.create(assets.image`player_image`, SpriteKind.Player)
-    sprite_player.ay = GRAVITY
     enable_controls(true)
 }
 function enable_controls (en: boolean) {
-    if (en) {
-        controller.moveSprite(sprite_player, MOVE_SPEED, 0)
-    } else {
-        controller.moveSprite(sprite_player, 0, 0)
-    }
+    en_controls = en
 }
 scene.onOverlapTile(SpriteKind.Player, assets.tile`to_left_map`, function (sprite, location) {
-    local_overlap_index = location_index([location], tiles.getTilesByType(assets.tile`to_left_map`))
-    map_x += -1
-    load_map()
-    tiles.placeOnTile(sprite, tiles.getTilesByType(assets.tile`to_right_map`)[local_overlap_index])
-    sprite.x += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) * -1
+    timer.throttle("map_change", 100, function () {
+        local_overlap_index = location_index([location], tiles.getTilesByType(assets.tile`to_left_map`))
+        map_x += -1
+        load_map()
+        tiles.placeOnTile(sprite, tiles.getTilesByType(assets.tile`to_right_map`)[local_overlap_index])
+        sprite.x += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) * -1
+        sprite.y += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) / 2
+    })
 })
+let en_controls = false
 let local_overlap_index = 0
 let player_jumping = false
 let sprite_player: Sprite = null
 let map_y = 0
 let map_x = 0
 let game_map: tiles.TileMapData[][] = []
-let GRAVITY = 0
-let MOVE_SPEED = 0
 stats.turnStats(true)
-MOVE_SPEED = 100
-GRAVITY = 500
-game_map = [[tileUtil.createSmallMap(tilemap`level2`), tileUtil.createSmallMap(tilemap`level4`)]]
+let MOVE_SPEED = 100
+let GRAVITY = 500
+game_map = [[tileUtil.createSmallMap(tilemap`map_0_1`), tileUtil.createSmallMap(tilemap`map_1_0`), tileUtil.createSmallMap(tilemap`map_2_0`)]]
 map_x = 0
 map_y = 0
 make_character()
 scene.setBackgroundColor(12)
 load_map()
 scene.centerCameraAt(scene.cameraProperty(CameraProperty.X) + tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth), scene.cameraProperty(CameraProperty.Y) + tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth))
+game.onUpdate(function () {
+    if (en_controls) {
+        if (sprite_player.tileKindAt(TileDirection.Center, assets.tile`ladder`) || (sprite_player.tileKindAt(TileDirection.Bottom, assets.tile`ladder`) || sprite_player.tileKindAt(TileDirection.Top, assets.tile`ladder`) || (sprite_player.tileKindAt(TileDirection.Left, assets.tile`ladder`) || sprite_player.tileKindAt(TileDirection.Right, assets.tile`ladder`)))) {
+            controller.moveSprite(sprite_player, MOVE_SPEED, MOVE_SPEED)
+            sprite_player.ay = 0
+            sprite_player.vy = 0
+        } else {
+            controller.moveSprite(sprite_player, MOVE_SPEED, 0)
+            sprite_player.ay = GRAVITY
+        }
+    } else {
+        controller.moveSprite(sprite_player, 0, 0)
+    }
+})
