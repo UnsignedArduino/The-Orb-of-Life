@@ -1,3 +1,7 @@
+namespace SpriteKind {
+    export const AnimatedTile = SpriteKind.create()
+    export const AnimatingTile = SpriteKind.create()
+}
 function location_index (loc_in_list: any[], locs: any[]) {
     for (let index = 0; index <= locs.length - 1; index++) {
         if (location_equal(loc_in_list, [locs[index]])) {
@@ -37,6 +41,8 @@ function jump_character () {
     }
 }
 function load_map () {
+    sprites.destroyAllSpritesOfKind(SpriteKind.AnimatedTile)
+    sprites.destroyAllSpritesOfKind(SpriteKind.AnimatingTile)
     tiles.setCurrentTilemap(game_map[map_y][map_x])
     if (tiles.getTilesByType(assets.tile`spawn_point`).length > 0) {
         tiles.placeOnRandomTile(sprite_player, assets.tile`spawn_point`)
@@ -47,6 +53,7 @@ function load_map () {
             sprite_player.vx = 0
         })
     }
+    animate_tiles()
 }
 scene.onOverlapTile(SpriteKind.Player, assets.tile`to_right_map`, function (sprite, location) {
     timer.throttle("map_change", 100, function () {
@@ -110,6 +117,16 @@ scene.onOverlapTile(SpriteKind.Player, assets.tile`to_left_map`, function (sprit
         sprite.y += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) / 2
     })
 })
+function animate_tiles () {
+    for (let image2 of [assets.tile`torch`, assets.tile`lantern`]) {
+        for (let location of tiles.getTilesByType(image2)) {
+            sprite_animated_tile = sprites.create(image2, SpriteKind.AnimatedTile)
+            sprite_animated_tile.setFlag(SpriteFlag.AutoDestroy, false)
+            sprite_animated_tile.z = -0.99
+            tiles.placeOnTile(sprite_animated_tile, location)
+        }
+    }
+}
 scene.onOverlapTile(SpriteKind.Player, assets.tile`to_bottom_map`, function (sprite, location) {
     if (location_equal([sprite_player.tilemapLocation().getNeighboringLocation(CollisionDirection.Bottom)], [location])) {
         timer.throttle("map_change", 100, function () {
@@ -136,6 +153,7 @@ function on_or_near_ladder (s: Sprite) {
     return false
 }
 let debug_sprite_curr_loc: Sprite = null
+let sprite_animated_tile: Sprite = null
 let en_controls = false
 let local_overlap_index = 0
 let player_jumping = false
@@ -189,5 +207,40 @@ game.onUpdate(function () {
             debug_sprite_curr_loc.setFlag(SpriteFlag.Ghost, true)
         }
         tiles.placeOnTile(debug_sprite_curr_loc, sprite_player.tilemapLocation())
+    }
+})
+forever(function () {
+    for (let index = 0; index <= Math.ceil(sprites.allOfKind(SpriteKind.AnimatedTile).length * 0.25); index++) {
+        sprite_animated_tile = sprites.allOfKind(SpriteKind.AnimatedTile)._pickRandom()
+        sprite_animated_tile.setKind(SpriteKind.AnimatingTile)
+        if (sprite_animated_tile.image.equals(assets.tile`torch`)) {
+            if (Math.percentChance(50)) {
+                animation.runImageAnimation(
+                sprite_animated_tile,
+                assets.animation`torch_animation`,
+                200,
+                false
+                )
+            } else {
+                animation.runImageAnimation(
+                sprite_animated_tile,
+                assets.animation`torch_animation_2`,
+                200,
+                false
+                )
+            }
+        } else if (sprite_animated_tile.image.equals(assets.tile`lantern`)) {
+            animation.runImageAnimation(
+            sprite_animated_tile,
+            assets.animation`lantern_animation`,
+            500,
+            false
+            )
+        }
+    }
+    pause(randint(2, 10) * 100)
+    for (let sprite_animated_tile of sprites.allOfKind(SpriteKind.AnimatingTile)) {
+        sprite_animated_tile.setKind(SpriteKind.AnimatedTile)
+        animation.stopAnimation(animation.AnimationTypes.All, sprite_animated_tile)
     }
 })
