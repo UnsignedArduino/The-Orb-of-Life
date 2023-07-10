@@ -1,10 +1,20 @@
-function location_index (loc_in_list: tiles.Location[], locs: any[]) {
+function location_index (loc_in_list: any[], locs: any[]) {
     for (let index = 0; index <= locs.length - 1; index++) {
-        if (loc_in_list[0].column == locs[index].column && loc_in_list[0].row == locs[index].row) {
+        if (location_equal(loc_in_list, [locs[index]])) {
             return index
         }
     }
     return -1
+}
+function add_tilemaps (tilemaps: tiles.TileMapData[], more_tilemaps: tiles.TileMapData[]) {
+    local_tilemaps = []
+    for (let value of tilemaps) {
+        local_tilemaps.push(value)
+    }
+    for (let value of more_tilemaps) {
+        local_tilemaps.push(value)
+    }
+    return local_tilemaps
 }
 controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     jump_character()
@@ -17,6 +27,9 @@ scene.onHitWall(SpriteKind.Player, function (sprite, location) {
         }
     }
 })
+function location_equal (l1: tiles.Location[], l2: tiles.Location[]) {
+    return l1[0].column == l2[0].column && l1[0].row == l2[0].row
+}
 function jump_character () {
     if (!(player_jumping)) {
         spriteutils.jumpImpulse(sprite_player, 18)
@@ -27,8 +40,8 @@ function load_map () {
     tiles.setCurrentTilemap(game_map[map_y][map_x])
     if (tiles.getTilesByType(assets.tile`spawn_point`).length > 0) {
         tiles.placeOnRandomTile(sprite_player, assets.tile`spawn_point`)
-        tileUtil.replaceAllTiles(assets.tile`spawn_point`, assets.tile`transparency8`)
         sprite_player.y += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) / 2
+        tileUtil.replaceAllTiles(assets.tile`spawn_point`, assets.tile`transparency8`)
         sprite_player.vx = 1
         timer.after(0, function () {
             sprite_player.vx = 0
@@ -74,13 +87,15 @@ function make_character () {
     )
 }
 scene.onOverlapTile(SpriteKind.Player, assets.tile`to_top_map`, function (sprite, location) {
-    timer.throttle("map_change", 100, function () {
-        local_overlap_index = location_index([location], tiles.getTilesByType(assets.tile`to_top_map`))
-        map_y += -1
-        load_map()
-        tiles.placeOnTile(sprite, tiles.getTilesByType(assets.tile`to_bottom_map`)[local_overlap_index])
-        sprite.y += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) * -1.5
-    })
+    if (location_equal([sprite_player.tilemapLocation().getNeighboringLocation(CollisionDirection.Top)], [location])) {
+        timer.throttle("map_change", 100, function () {
+            local_overlap_index = location_index([location], tiles.getTilesByType(assets.tile`to_top_map`))
+            map_y += -1
+            load_map()
+            tiles.placeOnTile(sprite, tiles.getTilesByType(assets.tile`to_bottom_map`)[local_overlap_index])
+            sprite.y += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) * -1.5
+        })
+    }
 })
 function enable_controls (en: boolean) {
     en_controls = en
@@ -96,18 +111,22 @@ scene.onOverlapTile(SpriteKind.Player, assets.tile`to_left_map`, function (sprit
     })
 })
 scene.onOverlapTile(SpriteKind.Player, assets.tile`to_bottom_map`, function (sprite, location) {
-    timer.throttle("map_change", 100, function () {
-        local_overlap_index = location_index([location], tiles.getTilesByType(assets.tile`to_bottom_map`))
-        map_y += 1
-        load_map()
-        tiles.placeOnTile(sprite, tiles.getTilesByType(assets.tile`to_top_map`)[local_overlap_index])
-        sprite.y += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) * 1.5
-    })
+    if (location_equal([sprite_player.tilemapLocation().getNeighboringLocation(CollisionDirection.Bottom)], [location])) {
+        timer.throttle("map_change", 100, function () {
+            local_overlap_index = location_index([location], tiles.getTilesByType(assets.tile`to_bottom_map`))
+            map_y += 1
+            load_map()
+            tiles.placeOnTile(sprite, tiles.getTilesByType(assets.tile`to_top_map`)[local_overlap_index])
+            sprite.y += tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth) * 1.5
+        })
+    }
 })
+let debug_sprite_curr_loc: Sprite = null
 let en_controls = false
 let local_overlap_index = 0
 let player_jumping = false
 let sprite_player: Sprite = null
+let local_tilemaps: tiles.TileMapData[] = []
 let map_y = 0
 let map_x = 0
 let game_map: tiles.TileMapData[][] = []
@@ -115,12 +134,12 @@ stats.turnStats(true)
 let MOVE_SPEED = 100
 let GRAVITY = 500
 game_map = [
-[tileUtil.createSmallMap(tilemap`map_0_1`), tileUtil.createSmallMap(tilemap`map_1_0`), tileUtil.createSmallMap(tilemap`map_2_0`)],
-[tileUtil.createSmallMap(tilemap`map_0_2`), tileUtil.createSmallMap(tilemap`map_1_1`), tileUtil.createSmallMap(tilemap`map_2_1`)],
-[],
+add_tilemaps([tileUtil.createSmallMap(tilemap`map_0_1`), tileUtil.createSmallMap(tilemap`map_1_0`), tileUtil.createSmallMap(tilemap`map_2_0`)], [tileUtil.createSmallMap(tilemap`map_3_0`)]),
+add_tilemaps([tileUtil.createSmallMap(tilemap`map_0_2`), tileUtil.createSmallMap(tilemap`map_1_1`), tileUtil.createSmallMap(tilemap`map_2_1`)], [tileUtil.createSmallMap(tilemap`map_3_1`)]),
+add_tilemaps([tileUtil.createSmallMap(tilemap`map_0_3`), tileUtil.createSmallMap(tilemap`map_1_2`), tileUtil.createSmallMap(tilemap`map_2_2`)], [tileUtil.createSmallMap(tilemap`map_3_2`)]),
 []
 ]
-map_x = 2
+map_x = 0
 map_y = 0
 make_character()
 scene.setBackgroundColor(12)
@@ -138,5 +157,23 @@ game.onUpdate(function () {
         }
     } else {
         controller.moveSprite(sprite_player, 0, 0)
+    }
+})
+game.onUpdate(function () {
+    if (false) {
+        if (spriteutils.isDestroyed(debug_sprite_curr_loc)) {
+            debug_sprite_curr_loc = sprites.create(img`
+                2 2 2 2 2 2 2 2 
+                2 2 2 2 2 2 2 2 
+                2 2 2 2 2 2 2 2 
+                2 2 2 2 2 2 2 2 
+                2 2 2 2 2 2 2 2 
+                2 2 2 2 2 2 2 2 
+                2 2 2 2 2 2 2 2 
+                2 2 2 2 2 2 2 2 
+                `, SpriteKind.Player)
+            debug_sprite_curr_loc.setFlag(SpriteFlag.Ghost, true)
+        }
+        tiles.placeOnTile(debug_sprite_curr_loc, sprite_player.tilemapLocation())
     }
 })
