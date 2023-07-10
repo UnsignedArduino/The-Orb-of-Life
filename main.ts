@@ -121,6 +121,20 @@ scene.onOverlapTile(SpriteKind.Player, assets.tile`to_bottom_map`, function (spr
         })
     }
 })
+function on_or_near_ladder (s: Sprite) {
+    for (let value of [assets.tile`ladder`, assets.tile`slightly_broken_ladder0`, assets.tile`slightly_broken_ladder_2`]) {
+        if (s.tileKindAt(TileDirection.Center, value)) {
+            return true
+        }
+        if (s.tileKindAt(TileDirection.Bottom, value) || s.tileKindAt(TileDirection.Top, value)) {
+            return true
+        }
+        if (s.tileKindAt(TileDirection.Left, value) || s.tileKindAt(TileDirection.Right, value)) {
+            return true
+        }
+    }
+    return false
+}
 let debug_sprite_curr_loc: Sprite = null
 let en_controls = false
 let local_overlap_index = 0
@@ -147,7 +161,7 @@ load_map()
 scene.centerCameraAt(scene.cameraProperty(CameraProperty.X) + tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth), scene.cameraProperty(CameraProperty.Y) + tileUtil.tilemapProperty(tileUtil.currentTilemap(), tileUtil.TilemapProperty.TileWidth))
 game.onUpdate(function () {
     if (en_controls) {
-        if (sprite_player.tileKindAt(TileDirection.Center, assets.tile`ladder`) || (sprite_player.tileKindAt(TileDirection.Bottom, assets.tile`ladder`) || sprite_player.tileKindAt(TileDirection.Top, assets.tile`ladder`) || (sprite_player.tileKindAt(TileDirection.Left, assets.tile`ladder`) || sprite_player.tileKindAt(TileDirection.Right, assets.tile`ladder`)))) {
+        if (on_or_near_ladder(sprite_player)) {
             controller.moveSprite(sprite_player, MOVE_SPEED, MOVE_SPEED)
             sprite_player.ay = 0
             sprite_player.vy = 0
